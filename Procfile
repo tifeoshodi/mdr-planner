@@ -1,1 +1,1 @@
-web: sh -c "cd app1_portfolio_manager && PYTHONPATH=/app:$PYTHONPATH gunicorn app:app --bind 0.0.0.0:$PORT --workers 2 --timeout 120"
+web: gunicorn --chdir app1_portfolio_manager --pythonpath /app app:app --bind 0.0.0.0:$PORT --workers 2 --timeout 120

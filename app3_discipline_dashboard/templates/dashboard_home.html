@@ -1,0 +1,216 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard Home{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Page Header -->
+    <div class="page-header">
+        <h1 class="mb-2"><i class="bi bi-speedometer2"></i> Welcome, {{ user.name }}!</h1>
+        <p class="mb-0">Here's your document tracking overview</p>
+    </div>
+
+    <!-- Metrics Widgets -->
+    <div class="row mb-4">
+        <div class="col-md-3 mb-3">
+            <div class="card metric-card bg-warning text-white">
+                <div class="card-body text-center">
+                    <i class="bi bi-clock-history" style="font-size: 2rem;"></i>
+                    <h2 class="metric-number mt-2">{{ total_stats.pending }}</h2>
+                    <p class="metric-label text-white-50">Pending Tasks</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card metric-card bg-primary text-white">
+                <div class="card-body text-center">
+                    <i class="bi bi-send-check" style="font-size: 2rem;"></i>
+                    <h2 class="metric-number mt-2">{{ total_stats.submitted }}</h2>
+                    <p class="metric-label text-white-50">Submitted to Client</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card metric-card bg-success text-white">
+                <div class="card-body text-center">
+                    <i class="bi bi-check-circle" style="font-size: 2rem;"></i>
+                    <h2 class="metric-number mt-2">{{ total_stats.approved }}</h2>
+                    <p class="metric-label text-white-50">Approved</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card metric-card bg-danger text-white">
+                <div class="card-body text-center">
+                    <i class="bi bi-exclamation-triangle" style="font-size: 2rem;"></i>
+                    <h2 class="metric-number mt-2">{{ total_stats.requires_attention|length }}</h2>
+                    <p class="metric-label text-white-50">Requires Attention</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Left Column: Action Required + My Portfolios -->
+        <div class="col-lg-8 mb-4">
+            <!-- Action Required Section -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-danger text-white">
+                    <h5 class="mb-0"><i class="bi bi-exclamation-circle"></i> Requires Attention ({{ total_stats.requires_attention|length }} items)</h5>
+                </div>
+                <div class="card-body" style="max-height: 400px; overflow-y: auto;">
+                    {% if total_stats.requires_attention %}
+                        {% for doc in total_stats.requires_attention[:10] %}
+                        <div class="action-card">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div>
+                                    <h6 class="mb-1">
+                                        <i class="bi bi-file-earmark-text text-danger"></i>
+                                        <strong>{{ doc.doc_number }}</strong> - {{ doc.doc_title }}
+                                    </h6>
+                                    <p class="mb-1 text-muted small">
+                                        <i class="bi bi-folder"></i> {{ doc.discipline.name if doc.discipline else 'N/A' }}
+                                    </p>
+                                    <span class="badge bg-warning text-dark">Client feedback received</span>
+                                    {% if doc.current_status %}
+                                    <span class="badge bg-secondary">{{ doc.current_status }}</span>
+                                    {% endif %}
+                                </div>
+                                <div class="text-end">
+                                    <a href="{{ url_for('view_feedback', document_id=doc.id) }}" class="btn btn-sm btn-outline-primary mb-1">
+                                        <i class="bi bi-eye"></i> View Feedback
+                                    </a>
+                                    <a href="{{ url_for('submit_document', document_id=doc.id) }}" class="btn btn-sm btn-primary">
+                                        <i class="bi bi-upload"></i> Submit Update
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="text-center text-muted py-4">
+                            <i class="bi bi-check-circle" style="font-size: 3rem;"></i>
+                            <p class="mt-2">Great! No documents require immediate attention.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- My Portfolios Section -->
+            <div class="card shadow-sm">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0"><i class="bi bi-briefcase"></i> My Project Portfolios</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        {% for item in portfolio_stats %}
+                        <div class="col-md-6 mb-3">
+                            <div class="card h-100 border-info">
+                                <div class="card-body">
+                                    <h5 class="card-title text-info">
+                                        <i class="bi bi-folder2-open"></i> {{ item.portfolio.name }}
+                                    </h5>
+                                    <p class="card-text text-muted small mb-2">
+                                        <strong>Code:</strong> {{ item.portfolio.code }}<br>
+                                        {% if item.portfolio.client %}
+                                        <strong>Client:</strong> {{ item.portfolio.client }}
+                                        {% endif %}
+                                    </p>
+                                    <div class="d-flex justify-content-between mb-3">
+                                        <span class="badge bg-secondary">
+                                            <i class="bi bi-file-earmark"></i> {{ item.stats.total }} Documents
+                                        </span>
+                                        <span class="badge bg-warning text-dark">
+                                            {{ item.stats.pending }} Pending
+                                        </span>
+                                        <span class="badge bg-success">
+                                            {{ item.stats.approved }} Approved
+                                        </span>
+                                    </div>
+                                    <div class="d-grid gap-2">
+                                        <a href="{{ url_for('document_list', portfolio_id=item.portfolio.id) }}" class="btn btn-sm btn-outline-info">
+                                            <i class="bi bi-list-ul"></i> View Documents
+                                        </a>
+                                        <a href="{{ url_for('kanban_board', portfolio_id=item.portfolio.id) }}" class="btn btn-sm btn-outline-secondary">
+                                            <i class="bi bi-kanban"></i> Kanban Board
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% if not portfolio_stats %}
+                    <div class="text-center text-muted py-4">
+                        <i class="bi bi-inbox" style="font-size: 3rem;"></i>
+                        <p class="mt-2">You haven't been assigned to any portfolios yet.</p>
+                        <p class="small">Contact your scheduler or admin to get portfolio access.</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Column: Recent Submissions + Quick Actions -->
+        <div class="col-lg-4">
+            <!-- Quick Actions -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="bi bi-lightning"></i> Quick Actions</h5>
+                </div>
+                <div class="card-body">
+                    {% if portfolio_stats %}
+                    <div class="d-grid gap-2">
+                        {% for item in portfolio_stats[:3] %}
+                        <a href="{{ url_for('document_list', portfolio_id=item.portfolio.id) }}" class="btn btn-outline-primary">
+                            <i class="bi bi-folder2-open"></i> {{ item.portfolio.name }} Documents
+                        </a>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <p class="text-muted text-center">No quick actions available</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Recent Submissions -->
+            <div class="card shadow-sm">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0"><i class="bi bi-clock-history"></i> Recent Submissions</h5>
+                </div>
+                <div class="card-body" style="max-height: 400px; overflow-y: auto;">
+                    {% if recent_submissions %}
+                        <ul class="list-group list-group-flush">
+                            {% for submission in recent_submissions %}
+                            <li class="list-group-item px-0">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div class="flex-grow-1">
+                                        <h6 class="mb-1 small">
+                                            {{ submission.document.doc_number }}
+                                        </h6>
+                                        <p class="mb-1 text-muted" style="font-size: 0.85rem;">
+                                            {{ submission.document.doc_title[:40] }}{% if submission.document.doc_title|length > 40 %}...{% endif %}
+                                        </p>
+                                        <span class="badge bg-info">{{ submission.stage }}</span>
+                                        <span class="badge bg-secondary">{{ submission.created_at.strftime('%Y-%m-%d') }}</span>
+                                    </div>
+                                    <a href="{{ url_for('view_feedback', document_id=submission.document_id) }}" class="btn btn-sm btn-outline-secondary">
+                                        <i class="bi bi-eye"></i>
+                                    </a>
+                                </div>
+                            </li>
+                            {% endfor %}
+                        </ul>
+                    {% else %}
+                        <div class="text-center text-muted py-4">
+                            <i class="bi bi-inbox" style="font-size: 2.5rem;"></i>
+                            <p class="mt-2 small">No recent submissions yet</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

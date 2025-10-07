@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+
+{% block title %}Users{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1><i class="bi bi-people"></i> Users</h1>
+    <a href="{{ url_for('invite_user') }}" class="btn btn-success">
+        <i class="bi bi-person-plus"></i> Invite New User
+    </a>
+</div>
+
+{% if users %}
+<div class="card shadow">
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Email</th>
+                        <th>Role</th>
+                        <th>Team Assignments</th>
+                        <th>Created</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for usr in users %}
+                    <tr>
+                        <td><strong>{{ usr.name }}</strong></td>
+                        <td>{{ usr.email }}</td>
+                        <td>
+                            <span class="badge bg-{% if usr.role == 'admin' %}danger{% elif usr.role == 'scheduler' %}warning{% elif usr.role == 'discipline_lead' %}info{% else %}secondary{% endif %}">
+                                {{ usr.role }}
+                            </span>
+                        </td>
+                        <td>{{ user_teams[usr.id] }} disciplines</td>
+                        <td>{{ usr.created_at.strftime('%d %b %Y') }}</td>
+                        <td>
+                            {% if user.role == 'admin' and usr.id != user.id %}
+                            <form method="POST" action="{{ url_for('delete_user', user_id=usr.id) }}" 
+                                  onsubmit="return confirm('Delete user {{ usr.name }}? This will remove all their team assignments.');" 
+                                  class="d-inline">
+                                <button type="submit" class="btn btn-sm btn-outline-danger">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </form>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% else %}
+<div class="alert alert-info">
+    No users found. <a href="{{ url_for('invite_user') }}" class="alert-link">Invite the first user</a>.
+</div>
+{% endif %}
+{% endblock %}
+

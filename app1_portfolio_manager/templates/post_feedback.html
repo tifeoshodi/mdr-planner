@@ -1,0 +1,227 @@
+{% extends "base.html" %}
+
+{% block title %}Post Client Feedback - {{ document.doc_number }}{% endblock %}
+
+{% block content %}
+<div class="container">
+    <!-- Page Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2><i class="bi bi-chat-left-dots"></i> Post Client Feedback</h2>
+            <p class="text-muted mb-0">{{ document.doc_number }} - {{ document.doc_title }}</p>
+        </div>
+        <div>
+            <a href="{{ url_for('view_document_feedback', document_id=document.id) }}" class="btn btn-outline-secondary">
+                <i class="bi bi-eye"></i> View All Feedback
+            </a>
+            <a href="{{ url_for('view_portfolio', portfolio_id=document.portfolio_id) }}" class="btn btn-outline-info">
+                <i class="bi bi-arrow-left"></i> Back to Portfolio
+            </a>
+        </div>
+    </div>
+
+    <!-- Info Alert -->
+    <div class="alert alert-info">
+        <i class="bi bi-info-circle"></i>
+        <strong>Client Feedback Posting:</strong> This form allows DCC to post client feedback received for document submissions. 
+        All feedback will be immediately visible to the assigned discipline team and reflected in the MDR.
+    </div>
+
+    <!-- Feedback Form -->
+    <div class="card shadow-sm">
+        <div class="card-header bg-warning text-dark">
+            <h5 class="mb-0"><i class="bi bi-envelope-open"></i> Client Feedback Details</h5>
+        </div>
+        <div class="card-body">
+            <form method="POST" enctype="multipart/form-data" id="feedbackForm">
+                <!-- Stage Selection -->
+                <div class="mb-4">
+                    <label class="form-label fw-bold">Submission Stage <span class="text-danger">*</span></label>
+                    <p class="text-muted small">Select the stage for which client feedback was received</p>
+                    <div class="row">
+                        {% for stage in stages %}
+                        <div class="col-md-3 mb-2">
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="stage" id="stage_{{ stage.code }}" 
+                                       value="{{ stage.code }}" required onchange="updateNextRevField()">
+                                <label class="form-check-label" for="stage_{{ stage.code }}">
+                                    <strong>{{ stage.code }}</strong> - {{ stage.name }}
+                                </label>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <hr class="my-4">
+
+                <!-- Feedback Details -->
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="date_received" class="form-label">
+                            Date Received <span class="text-danger">*</span>
+                        </label>
+                        <input type="date" class="form-control" id="date_received" name="date_received" required>
+                        <small class="text-muted">Date when client feedback was received by DCC</small>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label for="tr_received" class="form-label">
+                            Transmittal Received <span class="text-danger">*</span>
+                        </label>
+                        <input type="text" class="form-control" id="tr_received" name="tr_received" 
+                               placeholder="e.g., CLIENT-TR-089" required>
+                        <small class="text-muted">Client's transmittal number for easy tracking</small>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="rev_status" class="form-label">Revision Status</label>
+                        <input type="text" class="form-control" id="rev_status" name="rev_status" 
+                               placeholder="e.g., B1, C, Rev A">
+                        <small class="text-muted">Client's revision marking</small>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label for="issue_for" class="form-label">Issue For</label>
+                        <select class="form-select" id="issue_for" name="issue_for">
+                            <option value="">Select...</option>
+                            <option value="Review and Comment">Review and Comment</option>
+                            <option value="Approval">Approval</option>
+                            <option value="Information">Information</option>
+                            <option value="Construction">Construction</option>
+                            <option value="Final">Final</option>
+                            <option value="As-Built">As-Built</option>
+                            <option value="Resubmit">Resubmit</option>
+                        </select>
+                        <small class="text-muted">Purpose of the submission as marked by client</small>
+                    </div>
+                </div>
+
+                <div class="row" id="nextRevSection">
+                    <div class="col-md-6 mb-3">
+                        <label for="next_rev" class="form-label">Next Revision</label>
+                        <input type="text" class="form-control" id="next_rev" name="next_rev" 
+                               placeholder="e.g., Rev C">
+                        <small class="text-muted">Expected next revision (not applicable for AFC)</small>
+                    </div>
+                </div>
+
+                <!-- File Uploads -->
+                <div class="mb-3">
+                    <label for="files" class="form-label">
+                        <i class="bi bi-paperclip"></i> Attach Client Feedback Documents
+                    </label>
+                    <input type="file" class="form-control" id="files" name="files" multiple
+                           accept=".pdf,.dwg,.xlsx,.xls,.doc,.docx,.zip,.rar,.png,.jpg,.jpeg,.msg,.eml">
+                    <small class="text-muted">
+                        Upload reviewed documents, comment sheets, or client transmittals. 
+                        Allowed types: PDF, DWG, XLSX, DOC, ZIP, RAR, images, emails (Max 32MB each)
+                    </small>
+                    <div id="fileList" class="mt-2"></div>
+                </div>
+
+                <!-- Notes/Comments -->
+                <div class="mb-4">
+                    <label for="notes" class="form-label">Internal Notes / Comments</label>
+                    <textarea class="form-control" id="notes" name="notes" rows="4" 
+                              placeholder="Add any internal notes or summary of client feedback..."></textarea>
+                    <small class="text-muted">These notes will be added to the document remarks</small>
+                </div>
+
+                <hr class="my-4">
+
+                <!-- Submit Button -->
+                <div class="d-flex justify-content-between align-items-center">
+                    <a href="{{ url_for('view_portfolio', portfolio_id=document.portfolio_id) }}" class="btn btn-outline-secondary">
+                        <i class="bi bi-x-circle"></i> Cancel
+                    </a>
+                    <button type="submit" class="btn btn-warning btn-lg">
+                        <i class="bi bi-send-check"></i> Post Client Feedback
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Current Document Info -->
+    <div class="card mt-4 bg-light">
+        <div class="card-header">
+            <strong>Current Document Information</strong>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <p class="mb-1"><strong>Doc Number:</strong> {{ document.doc_number }}</p>
+                    <p class="mb-1"><strong>Discipline:</strong> {{ document.discipline.name if document.discipline else 'N/A' }}</p>
+                    <p class="mb-1"><strong>Current Revision:</strong> {{ document.current_revision or 'N/A' }}</p>
+                </div>
+                <div class="col-md-6">
+                    <p class="mb-1"><strong>Current Status:</strong> {{ document.current_status or 'N/A' }}</p>
+                    <p class="mb-1"><strong>Portfolio:</strong> {{ document.portfolio.name }} ({{ document.portfolio.code }})</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Set date_received to today by default
+    document.addEventListener('DOMContentLoaded', function() {
+        const today = new Date().toISOString().split('T')[0];
+        document.getElementById('date_received').value = today;
+    });
+
+    // Update Next Rev field visibility based on selected stage
+    function updateNextRevField() {
+        const selectedStage = document.querySelector('input[name="stage"]:checked');
+        const nextRevSection = document.getElementById('nextRevSection');
+        const nextRevInput = document.getElementById('next_rev');
+        
+        if (selectedStage && selectedStage.value === 'AFC') {
+            nextRevSection.style.display = 'none';
+            nextRevInput.required = false;
+            nextRevInput.value = '';
+        } else {
+            nextRevSection.style.display = 'block';
+            nextRevInput.required = false; // Optional field
+        }
+    }
+
+    // File upload preview
+    document.getElementById('files').addEventListener('change', function(e) {
+        const fileList = document.getElementById('fileList');
+        fileList.innerHTML = '';
+        
+        if (this.files.length > 0) {
+            const list = document.createElement('ul');
+            list.className = 'list-group';
+            
+            for (let i = 0; i < this.files.length; i++) {
+                const file = this.files[i];
+                const item = document.createElement('li');
+                item.className = 'list-group-item d-flex justify-content-between align-items-center';
+                item.innerHTML = `
+                    <span><i class="bi bi-file-earmark"></i> ${file.name}</span>
+                    <span class="badge bg-secondary">${(file.size / 1024 / 1024).toFixed(2)} MB</span>
+                `;
+                list.appendChild(item);
+            }
+            
+            fileList.appendChild(list);
+        }
+    });
+
+    // Form validation
+    document.getElementById('feedbackForm').addEventListener('submit', function(e) {
+        const selectedStage = document.querySelector('input[name="stage"]:checked');
+        if (!selectedStage) {
+            e.preventDefault();
+            alert('Please select a submission stage');
+            return false;
+        }
+    });
+</script>
+{% endblock %}
+

@@ -1,0 +1,2 @@
+"""Discipline Dashboard Flask Application"""
+

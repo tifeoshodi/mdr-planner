@@ -1,0 +1,227 @@
+{% extends "base.html" %}
+
+{% block title %}Document List - {{ portfolio.name }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Portfolio Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2><i class="bi bi-list-ul"></i> {{ portfolio.name }} - Document List</h2>
+            <p class="text-muted mb-0">
+                <strong>Code:</strong> {{ portfolio.code }} 
+                {% if portfolio.client %}| <strong>Client:</strong> {{ portfolio.client }}{% endif %}
+            </p>
+        </div>
+        <div>
+            <a href="{{ url_for('kanban_board', portfolio_id=portfolio.id) }}" class="btn btn-outline-secondary">
+                <i class="bi bi-kanban"></i> Kanban View
+            </a>
+            <a href="{{ url_for('index') }}" class="btn btn-outline-info">
+                <i class="bi bi-arrow-left"></i> Back to Dashboard
+            </a>
+        </div>
+    </div>
+
+    <!-- Statistics + Filters -->
+    <div class="row mb-4">
+        <div class="col-md-9">
+            <div class="card">
+                <div class="card-body py-3">
+                    <div class="row">
+                        <div class="col-md-3 text-center border-end">
+                            <h5 class="mb-0">{{ stats.total }}</h5>
+                            <small class="text-muted">Total Documents</small>
+                        </div>
+                        <div class="col-md-3 text-center border-end">
+                            <h5 class="mb-0 text-warning">{{ stats.pending }}</h5>
+                            <small class="text-muted">Pending</small>
+                        </div>
+                        <div class="col-md-3 text-center border-end">
+                            <h5 class="mb-0 text-primary">{{ stats.submitted }}</h5>
+                            <small class="text-muted">Submitted</small>
+                        </div>
+                        <div class="col-md-3 text-center">
+                            <h5 class="mb-0 text-success">{{ stats.approved }}</h5>
+                            <small class="text-muted">Approved</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card h-100">
+                <div class="card-body py-3">
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="bi bi-search"></i></span>
+                        <input type="text" class="form-control" id="searchInput" placeholder="Search documents...">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Documents Table -->
+    <div class="card shadow-sm">
+        <div class="card-header bg-info text-white">
+            <div class="d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="bi bi-file-earmark-text"></i> My Documents</h5>
+                <div>
+                    <select class="form-select form-select-sm d-inline-block w-auto" id="statusFilter">
+                        <option value="">All Statuses</option>
+                        <option value="draft">Draft</option>
+                        <option value="submitted">Submitted</option>
+                        <option value="review">Client Review</option>
+                        <option value="approved">Approved</option>
+                    </select>
+                    <select class="form-select form-select-sm d-inline-block w-auto ms-2" id="disciplineFilter">
+                        <option value="">All Disciplines</option>
+                        {% for discipline in user_disciplines %}
+                        <option value="{{ discipline.name }}">{{ discipline.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0" id="documentsTable">
+                    <thead class="table-light">
+                        <tr>
+                            <th style="width: 120px;">Doc Number</th>
+                            <th>Title</th>
+                            <th style="width: 150px;">Discipline</th>
+                            <th style="width: 100px;">Stage</th>
+                            <th style="width: 150px;">Status</th>
+                            <th style="width: 80px;">Rev</th>
+                            <th style="width: 200px;" class="text-center">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for doc in documents %}
+                        <tr data-discipline="{{ doc.discipline.name if doc.discipline else '' }}" 
+                            data-status="{{ doc.current_status|lower if doc.current_status else 'draft' }}">
+                            <td><strong>{{ doc.doc_number }}</strong></td>
+                            <td>{{ doc.doc_title }}</td>
+                            <td>
+                                <span class="badge bg-secondary">
+                                    {{ doc.discipline.name if doc.discipline else 'N/A' }}
+                                </span>
+                            </td>
+                            <td>
+                                {% set has_feedback = false %}
+                                {% for stage in ['afc', 'ifc', 'ifa', 'ifp', 'ift', 'ifd', 'ifh', 'ifr'] %}
+                                    {% set date_received = doc[stage + '_date_received'] %}
+                                    {% if date_received and not has_feedback %}
+                                        <span class="badge bg-warning text-dark">{{ stage.upper() }}</span>
+                                        {% set has_feedback = true %}
+                                    {% endif %}
+                                {% endfor %}
+                                {% if not has_feedback %}
+                                    <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if doc.current_status %}
+                                    {% if 'approved' in doc.current_status.lower() or 'afc' in doc.current_status.lower() %}
+                                        <span class="badge bg-success">{{ doc.current_status }}</span>
+                                    {% elif 'client' in doc.current_status.lower() or 'review' in doc.current_status.lower() %}
+                                        <span class="badge bg-info">{{ doc.current_status }}</span>
+                                    {% elif 'submitted' in doc.current_status.lower() %}
+                                        <span class="badge bg-primary">{{ doc.current_status }}</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">{{ doc.current_status }}</span>
+                                    {% endif %}
+                                {% else %}
+                                    <span class="badge bg-warning text-dark">Draft</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if doc.current_revision %}
+                                    <span class="badge bg-dark">{{ doc.current_revision }}</span>
+                                {% else %}
+                                    <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-center">
+                                <div class="btn-group btn-group-sm" role="group">
+                                    <a href="{{ url_for('view_feedback', document_id=doc.id) }}" 
+                                       class="btn btn-outline-info" 
+                                       title="View Feedback">
+                                        <i class="bi bi-eye"></i>
+                                    </a>
+                                    <a href="{{ url_for('submit_document', document_id=doc.id) }}" 
+                                       class="btn btn-outline-primary" 
+                                       title="Submit Update">
+                                        <i class="bi bi-upload"></i>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% if not documents %}
+                <div class="text-center text-muted py-5">
+                    <i class="bi bi-inbox" style="font-size: 3rem;"></i>
+                    <p class="mt-2">No documents found for your disciplines.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Search functionality
+    document.getElementById('searchInput').addEventListener('keyup', function() {
+        filterTable();
+    });
+
+    // Status filter
+    document.getElementById('statusFilter').addEventListener('change', function() {
+        filterTable();
+    });
+
+    // Discipline filter
+    document.getElementById('disciplineFilter').addEventListener('change', function() {
+        filterTable();
+    });
+
+    function filterTable() {
+        const searchValue = document.getElementById('searchInput').value.toLowerCase();
+        const statusValue = document.getElementById('statusFilter').value.toLowerCase();
+        const disciplineValue = document.getElementById('disciplineFilter').value.toLowerCase();
+        
+        const rows = document.querySelectorAll('#documentsTable tbody tr');
+        
+        rows.forEach(row => {
+            const text = row.textContent.toLowerCase();
+            const rowStatus = row.getAttribute('data-status');
+            const rowDiscipline = row.getAttribute('data-discipline').toLowerCase();
+            
+            let showRow = true;
+            
+            // Search filter
+            if (searchValue && !text.includes(searchValue)) {
+                showRow = false;
+            }
+            
+            // Status filter
+            if (statusValue && !rowStatus.includes(statusValue)) {
+                showRow = false;
+            }
+            
+            // Discipline filter
+            if (disciplineValue && !rowDiscipline.includes(disciplineValue)) {
+                showRow = false;
+            }
+            
+            row.style.display = showRow ? '' : 'none';
+        });
+    }
+</script>
+{% endblock %}
+

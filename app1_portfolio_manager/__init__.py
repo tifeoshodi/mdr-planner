@@ -1,0 +1,2 @@
+"""Portfolio Manager Flask Application"""
+

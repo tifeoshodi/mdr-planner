@@ -1,0 +1,128 @@
+{% extends "base.html" %}
+
+{% block title %}Manage Teams - {{ portfolio.name }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1><i class="bi bi-folder2-open text-success"></i> {{ portfolio.name }}</h1>
+        <p class="text-muted mb-0">{{ portfolio.code }}</p>
+    </div>
+    <a href="{{ url_for('index') }}" class="btn btn-secondary">
+        <i class="bi bi-arrow-left"></i> Back
+    </a>
+</div>
+
+<!-- Add Discipline Form -->
+<div class="card mb-4 border-success">
+    <div class="card-header bg-success text-white">
+        <h5 class="mb-0"><i class="bi bi-plus-circle"></i> Add New Discipline</h5>
+    </div>
+    <div class="card-body">
+        <form method="POST" action="{{ url_for('add_discipline', portfolio_id=portfolio.id) }}" class="row g-3">
+            <div class="col-md-10">
+                <input type="text" class="form-control" name="name" placeholder="Discipline name (e.g., Mechanical, Electrical)" required>
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-success w-100">
+                    <i class="bi bi-plus"></i> Add
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Disciplines List -->
+<h3 class="mb-3">Disciplines & Teams</h3>
+
+{% if disciplines %}
+    {% for discipline in disciplines %}
+    <div class="card discipline-card mb-3">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">
+                <i class="bi bi-folder"></i> {{ discipline.name }}
+                <span class="badge bg-success">{{ discipline_teams[discipline.id]|length }} members</span>
+            </h5>
+            <form method="POST" action="{{ url_for('delete_discipline', discipline_id=discipline.id) }}" 
+                  onsubmit="return confirm('Delete this discipline and all team assignments?');" class="d-inline">
+                <button type="submit" class="btn btn-sm btn-outline-danger">
+                    <i class="bi bi-trash"></i>
+                </button>
+            </form>
+        </div>
+        <div class="card-body">
+            <!-- Assign User Form -->
+            <form method="POST" action="{{ url_for('assign_user', discipline_id=discipline.id) }}" class="row g-2 mb-3">
+                <div class="col-md-7">
+                    <select name="user_id" class="form-select" required>
+                        <option value="">Select user to assign...</option>
+                        {% for usr in all_users %}
+                        <option value="{{ usr.id }}">{{ usr.name }} ({{ usr.email }}) - {{ usr.role }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <select name="role" class="form-select">
+                        <option value="member">Member</option>
+                        <option value="lead">Lead</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="bi bi-person-plus"></i> Assign
+                    </button>
+                </div>
+            </form>
+            
+            <!-- Team Members List -->
+            {% if discipline_teams[discipline.id] %}
+            <div class="table-responsive">
+                <table class="table table-sm">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Email</th>
+                            <th>Role in Discipline</th>
+                            <th>User Role</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for membership in discipline_teams[discipline.id] %}
+                        <tr>
+                            <td><strong>{{ membership.user.name }}</strong></td>
+                            <td>{{ membership.user.email }}</td>
+                            <td>
+                                <span class="badge bg-{% if membership.role == 'lead' %}warning{% else %}secondary{% endif %}">
+                                    {{ membership.role }}
+                                </span>
+                            </td>
+                            <td>{{ membership.user.role }}</td>
+                            <td>
+                                <form method="POST" action="{{ url_for('remove_membership', membership_id=membership.id) }}" 
+                                      onsubmit="return confirm('Remove this user from the discipline?');" class="d-inline">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger">
+                                        <i class="bi bi-x-circle"></i> Remove
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="alert alert-light mb-0">
+                <i class="bi bi-info-circle"></i> No team members assigned yet.
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    {% endfor %}
+{% else %}
+<div class="alert alert-warning">
+    <i class="bi bi-exclamation-triangle"></i> No disciplines defined yet. Add disciplines using the form above.
+</div>
+{% endif %}
+{% endblock %}
+

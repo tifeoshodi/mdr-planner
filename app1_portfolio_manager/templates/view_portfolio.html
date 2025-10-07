@@ -1,0 +1,122 @@
+{% extends "base.html" %}
+
+{% block title %}{{ portfolio.name }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1><i class="bi bi-folder2-open text-primary"></i> {{ portfolio.name }}</h1>
+        <p class="text-muted mb-0">Code: {{ portfolio.code }}</p>
+    </div>
+    <div>
+        <a href="{{ url_for('spreadsheet_view', portfolio_id=portfolio.id) }}" class="btn btn-info">
+            <i class="bi bi-table"></i> Spreadsheet View
+        </a>
+        {% if user and user.role in ['admin', 'scheduler'] %}
+        <a href="{{ url_for('import_excel', portfolio_id=portfolio.id) }}" class="btn btn-success">
+            <i class="bi bi-upload"></i> Import Excel
+        </a>
+        {% endif %}
+        <a href="{{ url_for('export_excel', portfolio_id=portfolio.id) }}" class="btn btn-primary">
+            <i class="bi bi-download"></i> Export Excel
+        </a>
+    </div>
+</div>
+
+{% if portfolio.description %}
+<div class="alert alert-info">
+    <i class="bi bi-info-circle"></i> {{ portfolio.description }}
+</div>
+{% endif %}
+
+<div class="card shadow-sm mb-4">
+    <div class="card-body">
+        <div class="row text-center">
+            <div class="col-md-4">
+                <h3 class="text-primary">{{ total_docs }}</h3>
+                <p class="text-muted">Total Documents</p>
+            </div>
+            <div class="col-md-4">
+                <h3 class="text-success">{{ documents_by_discipline|length }}</h3>
+                <p class="text-muted">Disciplines</p>
+            </div>
+            <div class="col-md-4">
+                <h3 class="text-info">{{ portfolio.created_at.strftime('%d %b %Y') }}</h3>
+                <p class="text-muted">Created Date</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<h3 class="mb-3">Documents by Discipline</h3>
+
+{% if documents_by_discipline %}
+    {% for discipline_name, documents in documents_by_discipline.items() %}
+    <div class="card mb-3">
+        <div class="card-header bg-success text-white">
+            <h5 class="mb-0">
+                <i class="bi bi-folder"></i> {{ discipline_name }}
+                <span class="badge bg-light text-dark float-end">{{ documents|length }} documents</span>
+            </h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th style="width: 5%">#</th>
+                            <th style="width: 12%">Doc Number</th>
+                            <th style="width: 33%">Title</th>
+                            <th style="width: 8%">Revision</th>
+                            <th style="width: 12%">Status</th>
+                            <th style="width: 10%">Transmittal</th>
+                            <th style="width: 20%" class="text-center">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for doc in documents %}
+                        <tr>
+                            <td>{{ doc.s_no or loop.index }}</td>
+                            <td><strong>{{ doc.doc_number }}</strong></td>
+                            <td>{{ doc.doc_title }}</td>
+                            <td>{{ doc.current_revision or '-' }}</td>
+                            <td>{{ doc.current_status or '-' }}</td>
+                            <td>{{ doc.current_transmittal_no or '-' }}</td>
+                            <td class="text-center">
+                                <div class="btn-group btn-group-sm" role="group">
+                                    <a href="{{ url_for('post_client_feedback', document_id=doc.id) }}" 
+                                       class="btn btn-warning" 
+                                       title="Post Client Feedback">
+                                        <i class="bi bi-chat-left-dots"></i>
+                                    </a>
+                                    <a href="{{ url_for('view_document_feedback', document_id=doc.id) }}" 
+                                       class="btn btn-info" 
+                                       title="View All Feedback">
+                                        <i class="bi bi-eye"></i>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+{% else %}
+<div class="alert alert-warning">
+    <i class="bi bi-exclamation-triangle"></i> No documents in this portfolio yet. 
+    {% if user and user.role in ['admin', 'scheduler'] %}
+    <a href="{{ url_for('import_excel', portfolio_id=portfolio.id) }}" class="alert-link">Import from Excel</a> to get started.
+    {% endif %}
+</div>
+{% endif %}
+
+<div class="mt-4">
+    <a href="{{ url_for('index') }}" class="btn btn-secondary">
+        <i class="bi bi-arrow-left"></i> Back to Dashboard
+    </a>
+</div>
+{% endblock %}
+

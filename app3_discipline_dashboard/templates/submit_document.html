@@ -1,0 +1,188 @@
+{% extends "base.html" %}
+
+{% block title %}Submit Document - {{ document.doc_number }}{% endblock %}
+
+{% block content %}
+<div class="container">
+    <!-- Page Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2><i class="bi bi-upload"></i> Submit Document Update</h2>
+            <p class="text-muted mb-0">{{ document.doc_number }} - {{ document.doc_title }}</p>
+        </div>
+        <a href="{{ url_for('view_feedback', document_id=document.id) }}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left"></i> Back
+        </a>
+    </div>
+
+    <!-- Info Alert -->
+    <div class="alert alert-info">
+        <i class="bi bi-info-circle"></i>
+        <strong>Note:</strong> You can <strong>Save as Draft</strong> to update the MDR without submitting files, 
+        or <strong>Submit to DCC</strong> with file attachments for official submission.
+        Transmittal numbers are assigned by DCC.
+    </div>
+
+    <!-- Submission Form -->
+    <div class="card shadow-sm">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0"><i class="bi bi-file-earmark-arrow-up"></i> Submission Details</h5>
+        </div>
+        <div class="card-body">
+            <form method="POST" enctype="multipart/form-data" id="submissionForm">
+                <!-- Submission Stage -->
+                <div class="mb-4">
+                    <label class="form-label fw-bold">Submission Stage <span class="text-danger">*</span></label>
+                    <div class="row">
+                        {% for stage in stages %}
+                        <div class="col-md-3 mb-2">
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="stage" id="stage_{{ stage.code }}" 
+                                       value="{{ stage.code }}" required>
+                                <label class="form-check-label" for="stage_{{ stage.code }}">
+                                    <strong>{{ stage.code }}</strong> - {{ stage.name }}
+                                </label>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <hr class="my-4">
+
+                <!-- Document Details -->
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="revision" class="form-label">Revision <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="revision" name="revision" 
+                               value="{{ document.current_revision or '' }}" 
+                               placeholder="e.g., Rev A, Rev B" required>
+                        <small class="text-muted">Current revision of this document</small>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label for="status" class="form-label">Status</label>
+                        <select class="form-select" id="status" name="status" required>
+                            <option value="">Select status...</option>
+                            <option value="In Progress" {% if 'progress' in (document.current_status or '').lower() %}selected{% endif %}>In Progress</option>
+                            <option value="Ready for Review">Ready for Review</option>
+                            <option value="Revising per Comments">Revising per Comments</option>
+                        </select>
+                        <small class="text-muted">DCC updates submission status after review</small>
+                    </div>
+                </div>
+
+                <!-- Dates -->
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="planned_date" class="form-label">Planned Date</label>
+                        <input type="date" class="form-control" id="planned_date" name="planned_date">
+                        <small class="text-muted">Original planned submission date</small>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label for="actual_date" class="form-label">Actual Date</label>
+                        <input type="date" class="form-control" id="actual_date" name="actual_date">
+                        <small class="text-muted">Actual/expected submission date</small>
+                    </div>
+                </div>
+
+                <!-- File Upload -->
+                <div class="mb-3">
+                    <label for="file" class="form-label">
+                        <i class="bi bi-paperclip"></i> Attach Document File
+                        <span class="text-danger" id="fileRequiredLabel" style="display: none;">*</span>
+                    </label>
+                    <input type="file" class="form-control" id="file" name="file" 
+                           accept=".pdf,.dwg,.xlsx,.xls,.doc,.docx,.zip,.rar,.png,.jpg,.jpeg">
+                    <small class="text-muted">
+                        Required for final submission. Allowed types: PDF, DWG, XLSX, DOC, ZIP, RAR, images (Max 32MB)
+                    </small>
+                </div>
+
+                <!-- Notes/Comments -->
+                <div class="mb-4">
+                    <label for="notes" class="form-label">Notes / Comments</label>
+                    <textarea class="form-control" id="notes" name="notes" rows="4" 
+                              placeholder="Add any notes or comments about this submission...">{{ document.remarks or '' }}</textarea>
+                </div>
+
+                <hr class="my-4">
+
+                <!-- Action Buttons -->
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <button type="submit" name="action" value="draft" class="btn btn-outline-secondary btn-lg">
+                            <i class="bi bi-save"></i> Save as Draft
+                        </button>
+                        <small class="text-muted d-block mt-1">Updates MDR, no file required</small>
+                    </div>
+                    <div class="text-end">
+                        <button type="submit" name="action" value="submit" class="btn btn-primary btn-lg" id="submitBtn">
+                            <i class="bi bi-send-check"></i> Submit to DCC
+                        </button>
+                        <small class="text-muted d-block mt-1">Official submission with file</small>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Current Document Info -->
+    <div class="card mt-4 bg-light">
+        <div class="card-header">
+            <strong>Current Document Information</strong>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <p class="mb-1"><strong>Doc Number:</strong> {{ document.doc_number }}</p>
+                    <p class="mb-1"><strong>Discipline:</strong> {{ document.discipline.name if document.discipline else 'N/A' }}</p>
+                    <p class="mb-1"><strong>Current Revision:</strong> {{ document.current_revision or 'N/A' }}</p>
+                </div>
+                <div class="col-md-6">
+                    <p class="mb-1"><strong>Current Status:</strong> {{ document.current_status or 'N/A' }}</p>
+                    <p class="mb-1"><strong>Transmittal No:</strong> {{ document.current_transmittal_no or 'N/A' }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Form validation
+    document.getElementById('submissionForm').addEventListener('submit', function(e) {
+        const action = e.submitter.value;
+        const fileInput = document.getElementById('file');
+        const fileRequiredLabel = document.getElementById('fileRequiredLabel');
+        
+        if (action === 'submit') {
+            // Require file for final submission
+            if (!fileInput.files || fileInput.files.length === 0) {
+                e.preventDefault();
+                alert('Please attach a file for final submission to DCC.');
+                fileInput.focus();
+                return false;
+            }
+        }
+    });
+
+    // Show file required indicator when submit button is hovered
+    document.getElementById('submitBtn').addEventListener('mouseenter', function() {
+        document.getElementById('fileRequiredLabel').style.display = 'inline';
+    });
+
+    document.getElementById('submitBtn').addEventListener('mouseleave', function() {
+        document.getElementById('fileRequiredLabel').style.display = 'none';
+    });
+
+    // Set actual date to today by default
+    document.addEventListener('DOMContentLoaded', function() {
+        const today = new Date().toISOString().split('T')[0];
+        if (!document.getElementById('actual_date').value) {
+            document.getElementById('actual_date').value = today;
+        }
+    });
+</script>
+{% endblock %}
+

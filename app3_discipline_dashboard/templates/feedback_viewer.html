@@ -1,0 +1,305 @@
+{% extends "base.html" %}
+
+{% block title %}Document Feedback - {{ document.doc_number }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Document Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2><i class="bi bi-file-earmark-text"></i> {{ document.doc_number }}</h2>
+            <p class="text-muted mb-1">{{ document.doc_title }}</p>
+            <span class="badge bg-secondary">{{ document.discipline.name if document.discipline else 'N/A' }}</span>
+            {% if document.current_status %}
+            <span class="badge bg-info">{{ document.current_status }}</span>
+            {% endif %}
+            {% if document.current_revision %}
+            <span class="badge bg-dark">Rev {{ document.current_revision }}</span>
+            {% endif %}
+        </div>
+        <div>
+            <a href="{{ url_for('submit_document', document_id=document.id) }}" class="btn btn-primary">
+                <i class="bi bi-upload"></i> Submit Update
+            </a>
+            <a href="{{ url_for('document_list', portfolio_id=document.portfolio_id) }}" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left"></i> Back to List
+            </a>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Left Column: Client Feedback -->
+        <div class="col-lg-8 mb-4">
+            <!-- Client Feedback Files -->
+            <div class="card shadow-sm mb-3">
+                <div class="card-header bg-primary text-white">
+                    <h6 class="mb-0"><i class="bi bi-files"></i> Client Feedback Documents</h6>
+                </div>
+                <div class="card-body" id="feedbackFilesContainer">
+                    <div class="text-center text-muted py-3" id="loadingFiles">
+                        <div class="spinner-border spinner-border-sm" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <p class="small mt-2">Loading feedback files...</p>
+                    </div>
+                    <div id="feedbackFilesList" style="display: none;"></div>
+                </div>
+            </div>
+            
+            {% if feedback_data %}
+            <!-- Client Feedback Sections -->
+            {% for feedback in feedback_data %}
+            <div class="card mb-3 shadow-sm">
+                <div class="card-header bg-warning text-dark">
+                    <h5 class="mb-0">
+                        <i class="bi bi-chat-left-dots"></i> {{ feedback.stage }} Stage Feedback
+                        <small class="float-end">{{ feedback.stage_name }}</small>
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <p class="mb-2">
+                                <i class="bi bi-calendar-check text-success"></i>
+                                <strong>Date Received:</strong> 
+                                <span class="badge bg-success">{{ feedback.date_received }}</span>
+                            </p>
+                            <p class="mb-2">
+                                <i class="bi bi-envelope text-primary"></i>
+                                <strong>Transmittal Received:</strong> 
+                                {% if feedback.tr_received %}
+                                    <span class="badge bg-primary">{{ feedback.tr_received }}</span>
+                                {% else %}
+                                    <span class="text-muted">N/A</span>
+                                {% endif %}
+                            </p>
+                        </div>
+                        <div class="col-md-6">
+                            <p class="mb-2">
+                                <i class="bi bi-tag text-info"></i>
+                                <strong>Revision Status:</strong> 
+                                {% if feedback.rev_status %}
+                                    <span class="badge bg-info">{{ feedback.rev_status }}</span>
+                                {% else %}
+                                    <span class="text-muted">N/A</span>
+                                {% endif %}
+                            </p>
+                            <p class="mb-2">
+                                <i class="bi bi-flag text-warning"></i>
+                                <strong>Issue For:</strong> 
+                                {% if feedback.issue_for %}
+                                    <span class="badge bg-warning text-dark">{{ feedback.issue_for }}</span>
+                                {% else %}
+                                    <span class="text-muted">N/A</span>
+                                {% endif %}
+                            </p>
+                        </div>
+                    </div>
+
+                    {% if feedback.next_rev %}
+                    <div class="alert alert-info mb-3">
+                        <i class="bi bi-arrow-right-circle"></i>
+                        <strong>Next Revision:</strong> {{ feedback.next_rev }}
+                    </div>
+                    {% endif %}
+
+                    <hr>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p class="mb-1 text-muted small"><strong>Submission Details:</strong></p>
+                            <p class="mb-1"><strong>Date Sent:</strong> {{ feedback.date_sent or 'N/A' }}</p>
+                            <p class="mb-1"><strong>TR No:</strong> {{ feedback.tr_no or 'N/A' }}</p>
+                        </div>
+                        <div class="col-md-6 text-end">
+                            <a href="{{ url_for('submit_document', document_id=document.id) }}" class="btn btn-sm btn-primary">
+                                <i class="bi bi-arrow-clockwise"></i> Submit Revised Version
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+            {% else %}
+            <!-- No Feedback Yet -->
+            <div class="card shadow-sm">
+                <div class="card-body text-center py-5">
+                    <i class="bi bi-inbox" style="font-size: 4rem; color: #dee2e6;"></i>
+                    <h4 class="mt-3 text-muted">No Client Feedback Yet</h4>
+                    <p class="text-muted">Client feedback will appear here once received by DCC.</p>
+                    <a href="{{ url_for('submit_document', document_id=document.id) }}" class="btn btn-primary mt-2">
+                        <i class="bi bi-upload"></i> Submit Document
+                    </a>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Right Column: Document Info + Submission History -->
+        <div class="col-lg-4">
+            <!-- Current Document Status -->
+            <div class="card mb-3 shadow-sm">
+                <div class="card-header bg-info text-white">
+                    <h6 class="mb-0"><i class="bi bi-info-circle"></i> Document Information</h6>
+                </div>
+                <div class="card-body">
+                    <p class="mb-2"><strong>Doc Number:</strong><br>{{ document.doc_number }}</p>
+                    <p class="mb-2"><strong>Title:</strong><br>{{ document.doc_title }}</p>
+                    <p class="mb-2"><strong>Discipline:</strong><br>{{ document.discipline.name if document.discipline else 'N/A' }}</p>
+                    <hr>
+                    <p class="mb-2"><strong>Current Revision:</strong> 
+                        <span class="badge bg-dark">{{ document.current_revision or 'N/A' }}</span>
+                    </p>
+                    <p class="mb-2"><strong>Current Status:</strong><br>
+                        {% if document.current_status %}
+                            {% if 'approved' in document.current_status.lower() %}
+                                <span class="badge bg-success">{{ document.current_status }}</span>
+                            {% else %}
+                                <span class="badge bg-secondary">{{ document.current_status }}</span>
+                            {% endif %}
+                        {% else %}
+                            <span class="text-muted">N/A</span>
+                        {% endif %}
+                    </p>
+                    <p class="mb-2"><strong>Transmittal No:</strong><br>
+                        {{ document.current_transmittal_no or 'N/A' }}
+                    </p>
+                    {% if document.remarks %}
+                    <hr>
+                    <p class="mb-0"><strong>Remarks:</strong><br>
+                        <small class="text-muted">{{ document.remarks }}</small>
+                    </p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Submission History -->
+            <div class="card shadow-sm">
+                <div class="card-header bg-success text-white">
+                    <h6 class="mb-0"><i class="bi bi-clock-history"></i> Submission History</h6>
+                </div>
+                <div class="card-body" style="max-height: 500px; overflow-y: auto;">
+                    {% if submissions %}
+                        {% for submission in submissions %}
+                        <div class="mb-3 pb-3 {% if not loop.last %}border-bottom{% endif %}">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <span class="badge bg-info">{{ submission.stage }}</span>
+                                <small class="text-muted">{{ submission.created_at.strftime('%Y-%m-%d %H:%M') }}</small>
+                            </div>
+                            {% if submission.submitted_revision %}
+                            <p class="mb-1 small"><strong>Revision:</strong> {{ submission.submitted_revision }}</p>
+                            {% endif %}
+                            {% if submission.comments %}
+                            <p class="mb-1 small text-muted">{{ submission.comments }}</p>
+                            {% endif %}
+                            {% if submission.file_path %}
+                            <a href="{{ url_for('download_submission', submission_id=submission.id) }}" 
+                               class="btn btn-sm btn-outline-primary mt-1">
+                                <i class="bi bi-download"></i> Download File
+                            </a>
+                            {% endif %}
+                            <div class="mt-1">
+                                <small class="text-muted">
+                                    <i class="bi bi-person"></i> {{ submission.submitter.name if submission.submitter else 'Unknown' }}
+                                </small>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="text-center text-muted py-4">
+                            <i class="bi bi-inbox" style="font-size: 2rem;"></i>
+                            <p class="mt-2 small">No submissions yet</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stage Progress Timeline -->
+    <div class="card mt-4 shadow-sm">
+        <div class="card-header bg-secondary text-white">
+            <h6 class="mb-0"><i class="bi bi-diagram-3"></i> Stage Progress Timeline</h6>
+        </div>
+        <div class="card-body">
+            <div class="row text-center">
+                {% for stage in stages %}
+                <div class="col-md-{{ (12 / stages|length)|int }} mb-2">
+                    {% set stage_code = stage.code.lower() %}
+                    {% set has_data = document[stage_code + '_date_sent'] or document[stage_code + '_date_received'] %}
+                    {% set is_complete = document[stage_code + '_date_received'] %}
+                    
+                    <div class="stage-indicator {% if is_complete %}text-success{% elif has_data %}text-primary{% else %}text-muted{% endif %}">
+                        <i class="bi {% if is_complete %}bi-check-circle-fill{% elif has_data %}bi-clock-fill{% else %}bi-circle{% endif %}" 
+                           style="font-size: 2rem;"></i>
+                        <p class="mb-0 mt-1"><strong>{{ stage.code }}</strong></p>
+                        <p class="small mb-0 text-muted">{{ stage.name }}</p>
+                        {% if has_data %}
+                        <small class="text-muted">
+                            {% if document[stage_code + '_date_sent'] %}
+                                Sent: {{ document[stage_code + '_date_sent'] }}
+                            {% endif %}
+                        </small>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Load client feedback files
+    document.addEventListener('DOMContentLoaded', function() {
+        fetch('/api/documents/{{ document.id }}/feedback-files')
+            .then(response => response.json())
+            .then(data => {
+                const loadingDiv = document.getElementById('loadingFiles');
+                const listDiv = document.getElementById('feedbackFilesList');
+                
+                if (data.files && data.files.length > 0) {
+                    let html = '<div class="list-group">';
+                    data.files.forEach(file => {
+                        const displayName = file.filename.split('_').slice(3).join('_') || file.filename;
+                        html += `
+                            <a href="${file.download_url}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                                <span>
+                                    <i class="bi bi-file-earmark-arrow-down text-primary"></i>
+                                    ${displayName}
+                                </span>
+                                <span class="badge bg-primary">
+                                    <i class="bi bi-download"></i> Download
+                                </span>
+                            </a>
+                        `;
+                    });
+                    html += '</div>';
+                    listDiv.innerHTML = html;
+                } else {
+                    listDiv.innerHTML = `
+                        <div class="text-center text-muted py-3">
+                            <i class="bi bi-inbox" style="font-size: 2rem;"></i>
+                            <p class="small mt-2">No client feedback files available yet</p>
+                        </div>
+                    `;
+                }
+                
+                loadingDiv.style.display = 'none';
+                listDiv.style.display = 'block';
+            })
+            .catch(error => {
+                console.error('Error loading files:', error);
+                document.getElementById('loadingFiles').innerHTML = `
+                    <div class="text-center text-muted py-3">
+                        <i class="bi bi-exclamation-circle"></i>
+                        <p class="small mt-2">Unable to load files</p>
+                    </div>
+                `;
+            });
+    });
+</script>
+{% endblock %}
+

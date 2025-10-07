@@ -11,7 +11,7 @@ git add .
 git commit -m "Initial commit"
 
 # Create repo on GitHub, then:
-git remote add origin https://github.com/YOUR_USERNAME/mdr-planner.git
+git remote add origin https://github.com/tifeoshodi/mdr-planner.git
 git push -u origin main
 ```
 

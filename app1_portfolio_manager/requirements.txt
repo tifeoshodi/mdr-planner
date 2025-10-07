@@ -1,0 +1,14 @@
+# Core Flask dependencies
+Flask==3.0.0
+Flask-SQLAlchemy==3.1.1
+Werkzeug==3.0.1
+SQLAlchemy==2.0.23
+
+# Excel file handling
+openpyxl==3.1.2
+
+# PostgreSQL support for production
+psycopg2-binary==2.9.9
+
+# Production WSGI server
+gunicorn==21.2.0

@@ -1,0 +1,11 @@
+[phases.setup]
+nixPkgs = ["python39"]
+
+[phases.install]
+cmds = ["pip install -r requirements_flask_apps.txt"]
+
+[phases.build]
+cmds = ["echo 'Build complete'"]
+
+[start]
+cmd = "cd app1_portfolio_manager && gunicorn app:app --bind 0.0.0.0:$PORT --workers 2 --timeout 120"
